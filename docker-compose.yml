@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: receipt-tracker-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: receipt_tracker
+      POSTGRES_USER: receipt_tracker
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

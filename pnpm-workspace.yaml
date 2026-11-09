@@ -1,0 +1,9 @@
+
+packages:
+  - "."
+
+allowBuilds:
+  '@parcel/watcher': true
+  '@scarf/scarf': false
+overrides:
+  fast-json-stringify: "7.2.0"
