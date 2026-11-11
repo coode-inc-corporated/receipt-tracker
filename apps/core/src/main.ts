@@ -20,7 +20,7 @@ async function bootstrap() {
 
   initSetup(app);
 
-  await app.listen(coreConfig.port);
+  await app.listen(coreConfig.port, coreConfig.host);
   logger.log(`Core запущен на порту ${coreConfig.port}`);
 }
 

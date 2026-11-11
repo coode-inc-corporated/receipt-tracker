@@ -81,7 +81,7 @@ Telegram проверяет окружение через Zod: `PORT` преоб
 После настройки корневого `.env`:
 
 ```powershell
-docker compose up -d
+docker compose up --wait postgres
 docker compose ps
 docker compose exec postgres pg_isready -U receipt_tracker -d receipt_tracker
 ```
@@ -95,17 +95,23 @@ docker compose exec postgres pg_isready -U receipt_tracker -d receipt_tracker
 
 ## Запуск
 
-В двух отдельных терминалах:
+Чтобы поднять PostgreSQL в Docker и запустить Core на компьютере в watch-режиме, откройте Docker Desktop и выполните:
 
 ```powershell
-pnpm start:core
+pnpm core:start:dev
 ```
+
+`precore:start:dev` ждёт готовности PostgreSQL, затем `core:start:dev` через `cross-env` задаёт `NODE_ENV=development` и вызывает `pnpm start:core`. Если Core уже работает в контейнере, сначала выполните `docker compose stop core`, чтобы освободить порт 3000.
+
+Для запуска Core и PostgreSQL в контейнерах используйте `docker compose up --build`.
+
+Telegram можно запустить в отдельном терминале:
 
 ```powershell
 pnpm start:telegram
 ```
 
-Обе команды включают watch-режим. `pnpm start:dev` также запускает Core в watch-режиме.
+`pnpm start:core` и `pnpm start:dev` запускают Core локально в watch-режиме и требуют уже работающий PostgreSQL. `pnpm start:telegram` запускает Telegram в watch-режиме.
 
 При стандартных портах:
 
