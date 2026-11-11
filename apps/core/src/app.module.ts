@@ -3,7 +3,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { InfrastructureModule } from './infrastructure/infrastructure.module';
 import { ConfigModule } from '@nestjs/config';
-import { CoreModule } from './core/core.module';
+import { CoreModule } from './common/core.module';
+import { envSchema } from './common/config/env.schema';
 
 
 @Module({
@@ -16,6 +17,7 @@ import { CoreModule } from './core/core.module';
     'apps/core/.env',
     ],
     isGlobal: true,
+    validationSchema: envSchema,
   }),
   CoreModule,
   InfrastructureModule],

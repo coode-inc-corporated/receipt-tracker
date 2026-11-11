@@ -7,6 +7,6 @@ export class TelegramConfig {
      constructor(private readonly config: ConfigService){}
 
       get port(): number {
-        return Number(this.config.get<string>('PORT') ?? 3001)
+        return this.config.getOrThrow<number>('PORT');
       }
 }

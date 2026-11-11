@@ -5,8 +5,8 @@ import {
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
 import { Logger } from '@nestjs/common';
-import { TelegramConfig } from './core/config/telegram.core.config';
-import { initSetup } from './core/setup/init.setup';
+import { TelegramConfig } from './common/config/telegram.core.config';
+import { initSetup } from './common/setup/init.setup';
 
 async function bootstrap() {
   const logger = new Logger('Telegram');

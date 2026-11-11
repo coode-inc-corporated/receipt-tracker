@@ -20,6 +20,16 @@ pnpm install
 
 ## Переменные окружения
 
+Скопируйте шаблоны (если локальные файлы уже существуют, сохраните их настройки):
+
+```powershell
+Copy-Item .env.example .env
+Copy-Item apps/core/.env.example apps/core/.env.development.local
+Copy-Item apps/telegram/.env.example apps/telegram/.env.development.local
+```
+
+Замените `replace_with_your_local_password` в корневом `.env` и `apps/core/.env.development.local` одним и тем же локальным паролем. Шаблоны содержат только примеры, реальные секреты в них не записывайте.
+
 ### Docker Compose
 
 Создайте корневой `.env` и задайте `POSTGRES_PASSWORD` своим локальным значением. Compose использует эту переменную для контейнера PostgreSQL.
@@ -62,7 +72,9 @@ DB_USERNAME=receipt_tracker
 
 В `apps/telegram/.env.development` используется `PORT=3001`; это также порт по умолчанию. Переменные БД Telegram не нужны. Интеграция бота пока не реализована.
 
-Файлы `.env` и `*.local` игнорируются Git. Обычные `.env.development`, `.env.test` и `.env.production` могут попасть в репозиторий: не помещайте в них секреты.
+Telegram проверяет окружение через Zod: `PORT` преобразуется в целое число от `1` до `65535` (по умолчанию `3001`), `NODE_ENV` допускает `development`, `test`, `staging` и `production` (по умолчанию `development`). Некорректные значения останавливают запуск приложения.
+
+Файлы `.env` и `.env.*` игнорируются Git во всех каталогах, кроме `.env.example`. Шаблоны `.env.example` сохраняются в репозитории; не помещайте в них секреты.
 
 ## PostgreSQL
 
