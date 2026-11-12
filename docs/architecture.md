@@ -37,7 +37,7 @@ Snaptix — образец организации кода. Его Express, Pris
 receipt-tracker/
 ├── apps/
 │   ├── core/src/
-│   │   ├── core/
+│   │   ├── common/
 │   │   │   ├── config/
 │   │   │   └── setup/settings/
 │   │   ├── infrastructure/database/
@@ -45,7 +45,7 @@ receipt-tracker/
 │   │   ├── app.module.ts
 │   │   └── main.ts
 │   └── telegram/src/
-│       ├── core/
+│       ├── common/
 │       │   ├── config/
 │       │   └── setup/settings/
 │       ├── modules/tg/
@@ -57,15 +57,16 @@ receipt-tracker/
 └── nest-cli.json
 ```
 
-- Оба приложения используют Fastify, собственный конфигурационный класс и локальный `initSetup`.
-- Core подключает Swagger и shutdown hooks; Telegram — только shutdown hooks.
+- Оба приложения используют Fastify. Конфигурационные классы и `initSetup` находятся в `src/common/config` и `src/common/setup` каждого приложения.
+- В Core `initSetup` включает shutdown hooks, настраивает Swagger и CORS и регистрирует глобальный `StandardSchemaValidationPipe` для параметров маршрутов со схемой. В Telegram `initSetup` включает shutdown hooks.
+- CORS в Core разрешает любые источники вне production. В production источники задаются через `CORS_ALLOWED_ORIGINS`. Передача credentials отключена.
 - Swagger: `/api`; OpenAPI JSON: `/api-json`. Это адреса документации, а не глобальный префикс бизнес-маршрутов.
 - Core подключает `ConfigModule`, `CoreModule` и `InfrastructureModule → DatabaseModule`.
 - TypeORM использует параметры окружения, `autoLoadEntities: true`, `synchronize: false` и SQL-логирование.
 - PostgreSQL 17 описан в Compose; пароль берётся из переменной `POSTGRES_PASSWORD`.
 - Контроллеры и сервисы пока шаблонные. Бизнес-сущности, репозитории и миграции не созданы.
 - `libs/common` пока шаблонная. `libs/contracts` и `libs/core` не созданы; добавлять их следует по потребности.
-- `@fastify/cookie` установлен, но не зарегистрирован. Глобальная валидация и CORS не настроены. ObserveModule не подключён.
+- Подключение `@fastify/cookie` отложено. ObserveModule не подключён.
 
 ## Будущие бизнес-модули
 
@@ -80,7 +81,7 @@ receipt-tracker/
 
 Общая инфраструктура приложения находится в `src/infrastructure`, инфраструктура модуля — внутри модуля. Степень разделения доменных моделей и TypeORM entities пока не определена.
 
-Не путать `apps/core` (бизнес-приложение), `apps/*/src/core` (технические настройки) и возможную будущую `libs/core` (общие технические компоненты).
+`apps/core` содержит бизнес-приложение. `apps/*/src/common` содержит технические настройки каждого приложения. `libs/common` предназначена для кода, общего для нескольких приложений.
 
 ## Открытые решения и отложенные задачи
 
@@ -89,7 +90,7 @@ receipt-tracker/
 - OCR-провайдер и хранение исходных изображений.
 - Статусы чеков, дубли, повторные попытки, проверка сумм и подтверждение пользователем.
 - Конкретные бизнес-модули, схема данных и стратегия миграций.
-- Подход к валидации; cookies и CORS при появлении соответствующих сценариев.
+- Схемы валидации для будущих маршрутов и настройка cookies при появлении соответствующего сценария.
 - Отдельная тестовая БД и окружение Core e2e.
 
 Это не список компонентов для немедленного создания. Обновляйте документ при принятии решений и изменении границ или структуры приложения.
