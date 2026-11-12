@@ -103,9 +103,9 @@ pnpm core:start:dev
 
 `precore:start:dev` ждёт готовности PostgreSQL, затем `core:start:dev` через `cross-env` задаёт `NODE_ENV=development` и вызывает `pnpm start:core`. Если Core уже работает в контейнере, сначала выполните `docker compose stop core`, чтобы освободить порт 3000.
 
-Для запуска Core и PostgreSQL в контейнерах используйте `docker compose up --build`.
+Команда `docker compose up --build` запускает PostgreSQL, Core и Telegram в контейнерах. HTTP-сервер Telegram доступен по адресу `http://localhost:3001/`. Compose передаёт ему `HOST=0.0.0.0`, а при локальном запуске используется `localhost`.
 
-Telegram можно запустить в отдельном терминале:
+Для локального запуска Telegram в watch-режиме сначала остановите его контейнер командой `docker compose stop telegram`, если он работает. Затем в отдельном терминале выполните:
 
 ```powershell
 pnpm start:telegram

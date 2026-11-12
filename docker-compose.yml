@@ -36,5 +36,16 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
 
+  telegram:
+    build:
+      context: .
+      dockerfile: apps/telegram/Dockerfile
+    environment:
+      NODE_ENV: development
+      HOST: "0.0.0.0"
+      PORT: "3001"
+    ports:
+      - "127.0.0.1:3001:3001"
+
 volumes:
   postgres_data:
