@@ -11,6 +11,41 @@ services:
       - "127.0.0.1:5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "receipt_tracker", "-d", "receipt_tracker"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  core:
+    build:
+      context: .
+      dockerfile: apps/core/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      HOST: "0.0.0.0"
+      PORT: "3000"
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: receipt_tracker
+      DB_USERNAME: receipt_tracker
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  telegram:
+    build:
+      context: .
+      dockerfile: apps/telegram/Dockerfile
+    environment:
+      NODE_ENV: development
+      HOST: "0.0.0.0"
+      PORT: "3001"
+    ports:
+      - "127.0.0.1:3001:3001"
 
 volumes:
   postgres_data:

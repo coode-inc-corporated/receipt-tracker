@@ -20,6 +20,16 @@ pnpm install
 
 ## Переменные окружения
 
+Скопируйте шаблоны (если локальные файлы уже существуют, сохраните их настройки):
+
+```powershell
+Copy-Item .env.example .env
+Copy-Item apps/core/.env.example apps/core/.env.development.local
+Copy-Item apps/telegram/.env.example apps/telegram/.env.development.local
+```
+
+Замените `replace_with_your_local_password` в корневом `.env` и `apps/core/.env.development.local` одним и тем же локальным паролем. Шаблоны содержат только примеры, реальные секреты в них не записывайте.
+
 ### Docker Compose
 
 Создайте корневой `.env` и задайте `POSTGRES_PASSWORD` своим локальным значением. Compose использует эту переменную для контейнера PostgreSQL.
@@ -62,14 +72,16 @@ DB_USERNAME=receipt_tracker
 
 В `apps/telegram/.env.development` используется `PORT=3001`; это также порт по умолчанию. Переменные БД Telegram не нужны. Интеграция бота пока не реализована.
 
-Файлы `.env` и `*.local` игнорируются Git. Обычные `.env.development`, `.env.test` и `.env.production` могут попасть в репозиторий: не помещайте в них секреты.
+Telegram проверяет окружение через Zod: `PORT` преобразуется в целое число от `1` до `65535` (по умолчанию `3001`), `NODE_ENV` допускает `development`, `test`, `staging` и `production` (по умолчанию `development`). Некорректные значения останавливают запуск приложения.
+
+Файлы `.env` и `.env.*` игнорируются Git во всех каталогах, кроме `.env.example`. Шаблоны `.env.example` сохраняются в репозитории; не помещайте в них секреты.
 
 ## PostgreSQL
 
 После настройки корневого `.env`:
 
 ```powershell
-docker compose up -d
+docker compose up --wait postgres
 docker compose ps
 docker compose exec postgres pg_isready -U receipt_tracker -d receipt_tracker
 ```
@@ -83,17 +95,23 @@ docker compose exec postgres pg_isready -U receipt_tracker -d receipt_tracker
 
 ## Запуск
 
-В двух отдельных терминалах:
+Чтобы поднять PostgreSQL в Docker и запустить Core на компьютере в watch-режиме, откройте Docker Desktop и выполните:
 
 ```powershell
-pnpm start:core
+pnpm core:start:dev
 ```
+
+`precore:start:dev` ждёт готовности PostgreSQL, затем `core:start:dev` через `cross-env` задаёт `NODE_ENV=development` и вызывает `pnpm start:core`. Если Core уже работает в контейнере, сначала выполните `docker compose stop core`, чтобы освободить порт 3000.
+
+Команда `docker compose up --build` запускает PostgreSQL, Core и Telegram в контейнерах. HTTP-сервер Telegram доступен по адресу `http://localhost:3001/`. Compose передаёт ему `HOST=0.0.0.0`, а при локальном запуске используется `localhost`.
+
+Для локального запуска Telegram в watch-режиме сначала остановите его контейнер командой `docker compose stop telegram`, если он работает. Затем в отдельном терминале выполните:
 
 ```powershell
 pnpm start:telegram
 ```
 
-Обе команды включают watch-режим. `pnpm start:dev` также запускает Core в watch-режиме.
+`pnpm start:core` и `pnpm start:dev` запускают Core локально в watch-режиме и требуют уже работающий PostgreSQL. `pnpm start:telegram` запускает Telegram в watch-режиме.
 
 При стандартных портах:
 

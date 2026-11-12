@@ -5,8 +5,12 @@ import { ConfigService } from '@nestjs/config';
 export class CoreConfig {
   constructor(private readonly config: ConfigService) {}
 
+  get host(): string {
+    return this.config.getOrThrow<string>('HOST');
+  }
+
   get port(): number {
-    return Number(this.config.get<string>('PORT') ?? 3000);
+    return this.config.get<number>('PORT') ?? 3000;
   }
 
   get isSwaggerEnabled(): boolean {
@@ -18,4 +22,16 @@ export class CoreConfig {
 
     return this.config.get<string>('NODE_ENV') !== 'production';
   }
+
+  get env(): string {
+    return this.config.get<string>('NODE_ENV', 'development');
+  }
+
+  get corsAllowedOrigins(): string[] {
+  return this.config
+    .get<string>('CORS_ALLOWED_ORIGINS', '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
 }

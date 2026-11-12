@@ -5,8 +5,8 @@ import {
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
 import { Logger } from '@nestjs/common';
-import { CoreConfig } from './core/config/core.config';
-import { initSetup } from './core/setup/init.setup';
+import { CoreConfig } from './common/config/core.config';
+import { initSetup } from './common/setup/init.setup';
 
 async function bootstrap() {
   const logger = new Logger('Core');
@@ -20,7 +20,7 @@ async function bootstrap() {
 
   initSetup(app);
 
-  await app.listen(coreConfig.port);
+  await app.listen(coreConfig.port, coreConfig.host);
   logger.log(`Core запущен на порту ${coreConfig.port}`);
 }
 
