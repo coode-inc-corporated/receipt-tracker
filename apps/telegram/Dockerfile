@@ -1,4 +1,4 @@
-FROM node:26-bookworm-slim
+FROM node:26.13.0-bookworm-slim
 
 RUN npm install --global pnpm@12.18.0
 
