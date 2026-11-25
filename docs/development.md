@@ -4,9 +4,9 @@
 
 ## Окружение
 
-- Node.js: `.nvmrc` указывает основную версию `26`. При использовании NVM for Windows установите и выберите доступную версию этой ветки.
-- Пакетный менеджер — pnpm. Его версия пока не закреплена в `package.json`.
-- Последние проверки в среде агента выполнялись с Node.js `24.22.1` и pnpm `11.25.0`. Это результат проверки, а не замена целевой версии из `.nvmrc`.
+- Node.js: точная версия `26.13.0` закреплена в `.nvmrc`, `package.json` и Dockerfile обоих приложений.
+- Пакетный менеджер — pnpm `12.18.0`. Версия закреплена в `package.json` и Dockerfile обоих приложений.
+- Целевая версия Node.js — `26.13.0`; локальная среда, GitHub Actions и Docker используют одну версию.
 - Для локальной PostgreSQL нужны Docker и Docker Compose.
 - Prettier и Oxlint уже указаны в зависимостях проекта.
 
@@ -139,6 +139,40 @@ pnpm test:e2e --runInBand
 ```powershell
 pnpm exec tsc -p tsconfig.spec.json --noEmit --incremental false
 ```
+
+## GitHub Actions
+
+Workflow `.github/workflows/ci.yml` запускается для pull request и push в `main`. Он устанавливает pnpm через `pnpm/action-setup`, выбирает Node.js из `.nvmrc`, использует кэш pnpm и выполняет:
+
+```powershell
+pnpm install --frozen-lockfile
+pnpm exec tsc -p tsconfig.spec.json --noEmit --incremental false
+pnpm build:core
+pnpm build:telegram
+docker build --file apps/core/Dockerfile --tag receipt-tracker-core:ci .
+docker build --file apps/telegram/Dockerfile --tag receipt-tracker-telegram:ci .
+```
+
+CI не запускает форматирование, линтер, модульные или e2e-тесты. Docker-образы только собираются для проверки и никуда не публикуются.
+
+### Ручное развёртывание в test
+
+После появления `.github/workflows/deploy.yml` в ветке по умолчанию откройте
+**Actions → Deploy to test → Run workflow**, выберите ветку и сервис
+(`core` или `telegram`). В выбранной ветке также должен быть этот workflow.
+
+В GitHub Environment `test` задайте секреты `DOCKERHUB_TOKEN`,
+`SSH_PRIVATE_KEY` и `SSH_KNOWN_HOSTS`, а также переменные
+`DOCKERHUB_USERNAME`, `SSH_HOST` и `SSH_USER`. По умолчанию используются
+SSH-порт `22`, каталог `/home/buho` и файл `docker-compose.production.yml`.
+Их можно переопределить через `SSH_PORT`, `DEPLOY_PATH` и `COMPOSE_FILE`.
+
+Workflow собирает образ выбранного сервиса из коммита на момент запуска и
+публикует теги `sha-<SHA>` и `latest`. Серверный Compose должен ссылаться на
+`<DOCKERHUB_USERNAME>/receipt-tracker-<service>:latest`. Для приватных образов
+SSH-пользователю нужен уже настроенный доступ на чтение из Docker Hub.
+Workflow скачивает образ, обновляет выбранный сервис вместе с необходимыми
+зависимостями и выводит его состояние в лог.
 
 ### Ограничение Core e2e
 
