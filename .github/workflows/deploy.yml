@@ -1,4 +1,4 @@
-name: Deploy to test
+name: Deploy
 run-name: Deploy ${{ inputs.service }} from ${{ github.ref_name }} to test
 
 on:

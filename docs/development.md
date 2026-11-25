@@ -158,7 +158,7 @@ CI не запускает форматирование, линтер, моду�
 ### Ручное развёртывание в test
 
 После появления `.github/workflows/deploy.yml` в ветке по умолчанию откройте
-**Actions → Deploy to test → Run workflow**, выберите ветку и сервис
+**Actions → Deploy → Run workflow**, выберите ветку и сервис
 (`core` или `telegram`). В выбранной ветке также должен быть этот workflow.
 
 В GitHub Environment `test` задайте секреты `DOCKERHUB_TOKEN`,
