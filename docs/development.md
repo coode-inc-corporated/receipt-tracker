@@ -155,6 +155,25 @@ docker build --file apps/telegram/Dockerfile --tag receipt-tracker-telegram:ci .
 
 CI не запускает форматирование, линтер, модульные или e2e-тесты. Docker-образы только собираются для проверки и никуда не публикуются.
 
+### Ручное развёртывание в test
+
+После появления `.github/workflows/deploy.yml` в ветке по умолчанию откройте
+**Actions → Deploy to test → Run workflow**, выберите ветку и сервис
+(`core` или `telegram`). В выбранной ветке также должен быть этот workflow.
+
+В GitHub Environment `test` задайте секреты `DOCKERHUB_TOKEN`,
+`SSH_PRIVATE_KEY` и `SSH_KNOWN_HOSTS`, а также переменные
+`DOCKERHUB_USERNAME`, `SSH_HOST` и `SSH_USER`. По умолчанию используются
+SSH-порт `22`, каталог `/home/buho` и файл `docker-compose.production.yml`.
+Их можно переопределить через `SSH_PORT`, `DEPLOY_PATH` и `COMPOSE_FILE`.
+
+Workflow собирает образ выбранного сервиса из коммита на момент запуска и
+публикует теги `sha-<SHA>` и `latest`. Серверный Compose должен ссылаться на
+`<DOCKERHUB_USERNAME>/receipt-tracker-<service>:latest`. Для приватных образов
+SSH-пользователю нужен уже настроенный доступ на чтение из Docker Hub.
+Workflow скачивает образ, обновляет выбранный сервис вместе с необходимыми
+зависимостями и выводит его состояние в лог.
+
 ### Ограничение Core e2e
 
 Jest использует окружение `test`. Core e2e импортирует настоящий `AppModule` и требует параметры подключения и доступную PostgreSQL.

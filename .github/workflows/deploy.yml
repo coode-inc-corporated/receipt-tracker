@@ -1,0 +1,117 @@
+name: Deploy to test
+run-name: Deploy ${{ inputs.service }} from ${{ github.ref_name }} to test
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: Service to deploy
+        required: true
+        type: choice
+        options:
+          - core
+          - telegram
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: deploy-test
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: test
+    env:
+      SERVICE: ${{ inputs.service }}
+      DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
+    steps:
+      - name: Validate deployment target
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+        run: |
+          if [[ "$REF_TYPE" != branch ]]; then
+            echo "::error::Select a branch to deploy."
+            exit 1
+          fi
+          case "$SERVICE" in
+            core|telegram) ;;
+            *) echo "::error::Select core or telegram."; exit 1 ;;
+          esac
+          if [[ ! "$DOCKERHUB_USERNAME" =~ ^[a-z0-9]+$ ]]; then
+            echo "::error::Set the DOCKERHUB_USERNAME variable."
+            exit 1
+          fi
+          echo "IMAGE=$DOCKERHUB_USERNAME/receipt-tracker-$SERVICE" >> "$GITHUB_ENV"
+
+      - name: Checkout selected commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Build image
+        run: |
+          docker build --file "apps/$SERVICE/Dockerfile" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --tag "$IMAGE:sha-$GITHUB_SHA" --tag "$IMAGE:latest" .
+
+      - name: Publish image to Docker Hub
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          : "${DOCKERHUB_TOKEN:?Set the DOCKERHUB_TOKEN secret}"
+          printf '%s' "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
+          docker push "$IMAGE:sha-$GITHUB_SHA"
+          docker push "$IMAGE:latest"
+
+      - name: Update service on test server
+        env:
+          SSH_HOST: ${{ vars.SSH_HOST }}
+          SSH_PORT: ${{ vars.SSH_PORT || '22' }}
+          SSH_USER: ${{ vars.SSH_USER }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/home/buho' }}
+          COMPOSE_FILE: ${{ vars.COMPOSE_FILE || 'docker-compose.production.yml' }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          : "${SSH_HOST:?Set the SSH_HOST variable}"
+          : "${SSH_USER:?Set the SSH_USER variable}"
+          : "${SSH_PRIVATE_KEY:?Set the SSH_PRIVATE_KEY secret}"
+          : "${SSH_KNOWN_HOSTS:?Set the SSH_KNOWN_HOSTS secret}"
+          if [[ ! "$DEPLOY_PATH" =~ ^/[a-zA-Z0-9_./-]+$ || ! "$COMPOSE_FILE" =~ ^[a-zA-Z0-9_-][a-zA-Z0-9_.-]*$ ]]; then
+            echo "::error::Set DEPLOY_PATH to an absolute path and COMPOSE_FILE to a filename."
+            exit 1
+          fi
+
+          umask 077
+          ssh_dir=$(mktemp -d)
+          trap 'rm -f "$ssh_dir/key" "$ssh_dir/known_hosts"; rmdir "$ssh_dir"' EXIT
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$ssh_dir/key"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
+
+          ssh -i "$ssh_dir/key" -p "$SSH_PORT" \
+            -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            -o "UserKnownHostsFile=$ssh_dir/known_hosts" \
+            -l "$SSH_USER" -- "$SSH_HOST" \
+            bash -s -- "'$DEPLOY_PATH'" "'$COMPOSE_FILE'" "'$SERVICE'" "'$IMAGE:latest'" <<'REMOTE'
+          set -euo pipefail
+          cd "$1"
+          compose=(docker compose --file "$2")
+          service="$3"
+          expected_image="$4"
+          images=$("${compose[@]}" config --images "$service")
+          if ! grep -Fxq -- "$expected_image" <<< "$images"; then
+            printf 'Compose does not reference %s for %s.\n' "$expected_image" "$service" >&2
+            exit 1
+          fi
+          "${compose[@]}" pull "$service"
+          "${compose[@]}" up --detach --wait --wait-timeout 120 "$service"
+          "${compose[@]}" ps "$service"
+          REMOTE
